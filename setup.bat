@@ -1,5 +1,5 @@
 @echo off
-echo Setting up Picture Cleaner Application...
+echo Setting up PictureCleaner Application...
 echo.
 
 :: Check if Python is installed
