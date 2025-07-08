@@ -46,6 +46,9 @@ class App(ctk.CTk):
         self.bind("<Key-S>", self.on_key_delete)
         self.bind("<Down>", self.on_key_delete)
         
+        self.bind("<Key-r>", self.on_key_rotate)
+        self.bind("<Key-R>", self.on_key_rotate)
+        
         # Make sure the window can receive focus for key events
         self.focus_set()
         
@@ -224,10 +227,11 @@ class App(ctk.CTk):
         self.bottom_middle.grid(row=1, column=1, sticky="ew", padx=5, pady=5)
         self.bottom_middle.grid_propagate(False)  # Prevent resizing
         
-        # Configure bottom middle grid for centering 1 button horizontally
+        # Configure bottom middle grid for centering 2 buttons horizontally
         self.bottom_middle.grid_columnconfigure(0, weight=1)
         self.bottom_middle.grid_columnconfigure(1, weight=0)
-        self.bottom_middle.grid_columnconfigure(2, weight=1)
+        self.bottom_middle.grid_columnconfigure(2, weight=0)
+        self.bottom_middle.grid_columnconfigure(3, weight=1)
         self.bottom_middle.grid_rowconfigure(0, weight=1)
         
         # Add delete button centered in the bottom section
@@ -242,6 +246,17 @@ class App(ctk.CTk):
             # Fallback to text if images can't be loaded
             trash_icon = None
         
+        # Try to load rotate icon (you can add rotate-64.ico as a rotate icon)
+        try:
+            rotate_icon = ctk.CTkImage(
+                light_image=Image.open("resources/images/rotate-64.ico"),
+                dark_image=Image.open("resources/images/rotate-64.ico"),
+                size=(20, 20)
+            )
+        except Exception as e:
+            # Fallback to text if images can't be loaded
+            rotate_icon = None
+        
         self.bottom_button1 = self.create_button(
             self.bottom_middle,
             text="🗑️" if trash_icon is None else "",
@@ -253,6 +268,17 @@ class App(ctk.CTk):
             height=30
         )
         self.bottom_button1.grid(row=0, column=1, padx=5, sticky="")
+        
+        # Add rotate button
+        self.bottom_button2 = self.create_button(
+            self.bottom_middle,
+            text="🔄" if rotate_icon is None else "",
+            image=rotate_icon,
+            command=self.on_rotate_click,
+            width=80,
+            height=30
+        )
+        self.bottom_button2.grid(row=0, column=2, padx=5, sticky="")
         
         # Hide layer 2 initially
         self.layer2.grid_remove()
@@ -337,6 +363,18 @@ class App(ctk.CTk):
         # Only process if layer 2 is active (image viewing mode)
         if hasattr(self, 'layer2') and self.layer2.winfo_viewable():
             self.on_delete_click()
+    
+    def on_key_rotate(self, event=None):
+        """
+        Handle R key press - rotate current image 90° clockwise
+        Only active when layer 2 is shown
+        
+        Args:
+            event: The key event
+        """
+        # Only process if layer 2 is active (image viewing mode)
+        if hasattr(self, 'layer2') and self.layer2.winfo_viewable():
+            self.on_rotate_click()
     
     def display_error(self, label, message, duration=3):
         """
@@ -593,6 +631,38 @@ class App(ctk.CTk):
         else:
             pass  # No images available for deletion
     
+    def on_rotate_click(self):
+        """
+        Handle rotate button click - rotate current image 90° clockwise
+        """
+        if hasattr(self, 'directory_images') and self.directory_images and hasattr(self, 'current_image_path'):
+            # Run pre-execution function
+            self.pre_button_execution(self.current_image_path)
+            
+            try:
+                # Check if the file is an image (not a video)
+                if not self.is_image_file(self.current_image_path):
+                    return  # Skip rotation for non-image files
+                
+                # Open the image
+                image = Image.open(self.current_image_path)
+                
+                # Rotate the image 90 degrees clockwise
+                rotated_image = image.rotate(-90, expand=True)
+                
+                # Save the rotated image, overwriting the original
+                rotated_image.save(self.current_image_path)
+                
+                # Refresh the display to show the rotated image
+                self.display_file_info(self.current_image_path)
+                
+            except Exception as e:
+                # Handle any errors during rotation
+                pass
+                
+        else:
+            pass  # No images available for rotation
+    
     def on_closing(self):
         """
         Handle window close event - shuts down the entire application
@@ -661,6 +731,24 @@ class App(ctk.CTk):
         _, ext = os.path.splitext(file_path.lower())
         
         return ext in image_extensions or ext in video_extensions
+    
+    def is_image_file(self, file_path):
+        """
+        Check if a file is an image (not video) based on its extension
+        
+        Args:
+            file_path (str): Path to the file to check
+            
+        Returns:
+            bool: True if the file is an image, False otherwise
+        """
+        # Common image extensions
+        image_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp', '.svg'}
+        
+        # Get file extension and convert to lowercase
+        _, ext = os.path.splitext(file_path.lower())
+        
+        return ext in image_extensions
     
     def display_file_info(self, file_path):
         """

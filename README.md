@@ -130,6 +130,7 @@ python src/main.py
 | `A` or `←` | Previous file |
 | `D` or `→` | Next file |
 | `S` or `↓` | Delete current file |
+| `R` | Rotate current image 90° right |
 
 ### Workflow
 
