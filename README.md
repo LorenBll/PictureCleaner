@@ -78,8 +78,16 @@ Managing large collections of photos and videos can be overwhelming. Traditional
    ```
 
 2. **Run the setup script:**
+   
+   **Windows:**
    ```bash
    setup.bat
+   ```
+   
+   **macOS/Linux:**
+   ```bash
+   chmod +x setup.sh
+   ./setup.sh
    ```
    
    This will automatically:
@@ -93,12 +101,12 @@ If you prefer manual setup:
 
 1. **Create virtual environment:**
    ```bash
-   python -m venv venv
+   python -m venv .venv
    ```
 
 2. **Activate virtual environment:**
-   - Windows: `venv\Scripts\activate`
-   - macOS/Linux: `source venv/bin/activate`
+   - Windows: `.venv\Scripts\activate`
+   - macOS/Linux: `source .venv/bin/activate`
 
 3. **Install dependencies:**
    ```bash
@@ -110,14 +118,25 @@ If you prefer manual setup:
 ### Starting the Application
 
 **Quick Start:**
+
+**Windows:**
 ```bash
 run.bat
+```
+
+**macOS/Linux:**
+```bash
+./run.sh
 ```
 
 **Manual Start:**
 ```bash
 # Activate virtual environment first
-venv\Scripts\activate
+# Windows:
+.venv\Scripts\activate
+
+# macOS/Linux:
+source .venv/bin/activate
 
 # Run the application
 python src/main.py
