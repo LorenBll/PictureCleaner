@@ -48,6 +48,16 @@ class App(ctk.CTk):
         
         self.bind("<Key-r>", self.on_key_rotate)
         self.bind("<Key-R>", self.on_key_rotate)
+        self.bind("<Shift-Key-R>", self.on_key_rotate_left)
+        
+        # Bind Shift key press and release to update rotate button icon
+        self.bind("<KeyPress-Shift_L>", self.on_shift_press)
+        self.bind("<KeyPress-Shift_R>", self.on_shift_press)
+        self.bind("<KeyRelease-Shift_L>", self.on_shift_release)
+        self.bind("<KeyRelease-Shift_R>", self.on_shift_release)
+        
+        # Initialize Shift key state
+        self.shift_held = False
         
         # Make sure the window can receive focus for key events
         self.focus_set()
@@ -97,9 +107,14 @@ class App(ctk.CTk):
         # Recursive checkbox
         self.recursive_checkbox = ctk.CTkCheckBox(
             self.checkbox_frame,
-            text="Operate Recursively",
+            text="  Operate Recursively",
             width=200,
-            height=20
+            height=20,
+            text_color=("gray10", "gray90"),
+            checkbox_width=18,
+            checkbox_height=18,
+            border_width=2,
+            text_color_disabled=("gray40", "gray60")
         )
         self.recursive_checkbox.pack(anchor="center")
         
@@ -202,7 +217,8 @@ class App(ctk.CTk):
         # Configure green section grid for centering image and labels
         self.green_section.grid_columnconfigure(0, weight=1)
         self.green_section.grid_rowconfigure(0, weight=1)  # Image display area
-        self.green_section.grid_rowconfigure(1, weight=0)  # Image name label area
+        self.green_section.grid_rowconfigure(1, weight=0)  # Image index label area
+        self.green_section.grid_rowconfigure(2, weight=0)  # Image name label area
         
         # Add image display label in the green section
         self.image_label = ctk.CTkLabel(
@@ -213,14 +229,23 @@ class App(ctk.CTk):
         )
         self.image_label.grid(row=0, column=0, sticky="nsew", padx=10, pady=(10, 5))
         
-        # Add image name label below the image (without extension)
+        # Add image index label below the image
+        self.image_index_label = ctk.CTkLabel(
+            self.green_section,
+            text="",
+            font=("Arial", 12),
+            text_color="lightgray"
+        )
+        self.image_index_label.grid(row=1, column=0, sticky="ew", padx=10, pady=(0, 5))
+        
+        # Add image name label below the index (without extension)
         self.image_name_label = ctk.CTkLabel(
             self.green_section,
             text="",
             font=("Arial", 14, "bold"),
             text_color="white"
         )
-        self.image_name_label.grid(row=1, column=0, sticky="ew", padx=10, pady=(0, 5))
+        self.image_name_label.grid(row=2, column=0, sticky="ew", padx=10, pady=(0, 5))
         
         # Bottom middle section - fixed 75px height
         self.bottom_middle = ctk.CTkFrame(self.layer2, height=75)
@@ -248,14 +273,28 @@ class App(ctk.CTk):
         
         # Try to load rotate icon (you can add rotate-64.ico as a rotate icon)
         try:
+            rotate_image = Image.open("resources/images/rotate-64.ico")
+            # Create normal rotate icon
             rotate_icon = ctk.CTkImage(
-                light_image=Image.open("resources/images/rotate-64.ico"),
-                dark_image=Image.open("resources/images/rotate-64.ico"),
+                light_image=rotate_image,
+                dark_image=rotate_image,
+                size=(20, 20)
+            )
+            # Create mirrored rotate icon
+            mirrored_rotate_image = rotate_image.transpose(Image.FLIP_LEFT_RIGHT)
+            rotate_icon_mirrored = ctk.CTkImage(
+                light_image=mirrored_rotate_image,
+                dark_image=mirrored_rotate_image,
                 size=(20, 20)
             )
         except Exception as e:
             # Fallback to text if images can't be loaded
             rotate_icon = None
+            rotate_icon_mirrored = None
+        
+        # Store rotate icons for later use
+        self.rotate_icon = rotate_icon
+        self.rotate_icon_mirrored = rotate_icon_mirrored
         
         self.bottom_button1 = self.create_button(
             self.bottom_middle,
@@ -272,8 +311,8 @@ class App(ctk.CTk):
         # Add rotate button
         self.bottom_button2 = self.create_button(
             self.bottom_middle,
-            text="🔄" if rotate_icon is None else "",
-            image=rotate_icon,
+            text="🔄" if self.rotate_icon is None else "",
+            image=self.rotate_icon,
             command=self.on_rotate_click,
             width=80,
             height=30
@@ -375,6 +414,50 @@ class App(ctk.CTk):
         # Only process if layer 2 is active (image viewing mode)
         if hasattr(self, 'layer2') and self.layer2.winfo_viewable():
             self.on_rotate_click()
+    
+    def on_key_rotate_left(self, event=None):
+        """
+        Handle Shift+R key press - rotate current image 90° counterclockwise
+        Only active when layer 2 is shown
+        
+        Args:
+            event: The key event
+        """
+        # Only process if layer 2 is active (image viewing mode)
+        if hasattr(self, 'layer2') and self.layer2.winfo_viewable():
+            self.on_rotate_left_click()
+    
+    def on_shift_press(self, event=None):
+        """
+        Handle Shift key press - update rotate button icon to mirrored version
+        
+        Args:
+            event: The key event
+        """
+        self.shift_held = True
+        self.update_rotate_button_icon()
+    
+    def on_shift_release(self, event=None):
+        """
+        Handle Shift key release - restore rotate button icon to normal version
+        
+        Args:
+            event: The key event
+        """
+        self.shift_held = False
+        self.update_rotate_button_icon()
+    
+    def update_rotate_button_icon(self):
+        """
+        Update the rotate button icon based on Shift key state
+        """
+        if hasattr(self, 'bottom_button2') and hasattr(self, 'rotate_icon'):
+            if self.shift_held and self.rotate_icon_mirrored is not None:
+                # Use mirrored icon when Shift is held
+                self.bottom_button2.configure(image=self.rotate_icon_mirrored)
+            elif self.rotate_icon is not None:
+                # Use normal icon when Shift is not held
+                self.bottom_button2.configure(image=self.rotate_icon)
     
     def display_error(self, label, message, duration=3):
         """
@@ -633,7 +716,7 @@ class App(ctk.CTk):
     
     def on_rotate_click(self):
         """
-        Handle rotate button click - rotate current image 90° clockwise
+        Handle rotate button click - rotate current image 90° clockwise or counterclockwise based on Shift key state
         """
         if hasattr(self, 'directory_images') and self.directory_images and hasattr(self, 'current_image_path'):
             # Run pre-execution function
@@ -647,8 +730,45 @@ class App(ctk.CTk):
                 # Open the image
                 image = Image.open(self.current_image_path)
                 
-                # Rotate the image 90 degrees clockwise
-                rotated_image = image.rotate(-90, expand=True)
+                # Rotate the image based on Shift key state
+                if self.shift_held:
+                    # Rotate 90 degrees counterclockwise when Shift is held
+                    rotated_image = image.rotate(90, expand=True)
+                else:
+                    # Rotate 90 degrees clockwise by default
+                    rotated_image = image.rotate(-90, expand=True)
+                
+                # Save the rotated image, overwriting the original
+                rotated_image.save(self.current_image_path)
+                
+                # Refresh the display to show the rotated image
+                self.display_file_info(self.current_image_path)
+                
+            except Exception as e:
+                # Handle any errors during rotation
+                pass
+                
+        else:
+            pass  # No images available for rotation
+    
+    def on_rotate_left_click(self):
+        """
+        Handle Shift+R key press - rotate current image 90° counterclockwise
+        """
+        if hasattr(self, 'directory_images') and self.directory_images and hasattr(self, 'current_image_path'):
+            # Run pre-execution function
+            self.pre_button_execution(self.current_image_path)
+            
+            try:
+                # Check if the file is an image (not a video)
+                if not self.is_image_file(self.current_image_path):
+                    return  # Skip rotation for non-image files
+                
+                # Open the image
+                image = Image.open(self.current_image_path)
+                
+                # Rotate the image 90 degrees counterclockwise
+                rotated_image = image.rotate(90, expand=True)
                 
                 # Save the rotated image, overwriting the original
                 rotated_image.save(self.current_image_path)
@@ -767,6 +887,17 @@ class App(ctk.CTk):
             # Extract image name without extension
             image_name = os.path.splitext(filename)[0]
             
+            # Update image index label
+            if hasattr(self, 'directory_images') and self.directory_images:
+                try:
+                    current_index = self.directory_images.index(file_path)
+                    total_count = len(self.directory_images)
+                    self.image_index_label.configure(text=f"{current_index + 1} of {total_count}")
+                except ValueError:
+                    self.image_index_label.configure(text="")
+            else:
+                self.image_index_label.configure(text="")
+            
             # Update labels - only show image name without extension
             self.image_name_label.configure(text=image_name)
             
@@ -778,6 +909,7 @@ class App(ctk.CTk):
         else:
             # Clear all labels and image if no file
             self.clear_image()
+            self.image_index_label.configure(text="")
             self.image_name_label.configure(text="")
             self.current_image_path = None
             

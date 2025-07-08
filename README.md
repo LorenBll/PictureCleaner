@@ -131,6 +131,9 @@ python src/main.py
 | `D` or `→` | Next file |
 | `S` or `↓` | Delete current file |
 | `R` | Rotate current image 90° right |
+| `Shift` + `R` | Rotate current image 90° left |
+| `Shift` + Rotate Button | Rotate in opposite direction (visual feedback) |
+
 
 ### Workflow
 
