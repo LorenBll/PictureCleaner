@@ -44,6 +44,7 @@ class App(ctk.CTk):
         
         self.bind("<Key-s>", self.on_key_delete)
         self.bind("<Key-S>", self.on_key_delete)
+        self.bind("<Down>", self.on_key_delete)
         
         # Make sure the window can receive focus for key events
         self.focus_set()

@@ -3,7 +3,7 @@ echo Starting Picture Cleaner Application...
 echo.
 
 :: Check if virtual environment exists
-if not exist "venv" (
+if not exist ".venv" (
     echo ERROR: Virtual environment not found!
     echo Please run setup.bat first to create the virtual environment.
     pause
@@ -12,7 +12,7 @@ if not exist "venv" (
 
 :: Activate virtual environment
 echo Activating virtual environment...
-call venv\Scripts\activate.bat
+call .venv\Scripts\activate.bat
 if %errorlevel% neq 0 (
     echo ERROR: Failed to activate virtual environment
     pause

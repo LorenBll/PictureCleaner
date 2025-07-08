@@ -129,8 +129,7 @@ python src/main.py
 |-----|--------|
 | `A` or `←` | Previous file |
 | `D` or `→` | Next file |
-| `S` | Delete current file |
-| `ESC` | Cancel focus/exit |
+| `S` or `↓` | Delete current file |
 
 ### Workflow
 
