@@ -72,6 +72,10 @@ class App(ctk.CTk):
         # Initialize current image index
         self.current_image_index = 0
         
+        # Initialize image cache for preloading
+        self.image_cache = {}
+        self.cache_size = 21  # 10 before + current + 10 after
+        
         # Show the initial layer
         self.show_layer1()
     
@@ -254,11 +258,12 @@ class App(ctk.CTk):
         self.bottom_middle.grid(row=1, column=1, sticky="ew", padx=5, pady=5)
         self.bottom_middle.grid_propagate(False)  # Prevent resizing
         
-        # Configure bottom middle grid for centering 2 buttons horizontally
+        # Configure bottom middle grid for centering 3 buttons horizontally
         self.bottom_middle.grid_columnconfigure(0, weight=1)
         self.bottom_middle.grid_columnconfigure(1, weight=0)
         self.bottom_middle.grid_columnconfigure(2, weight=0)
-        self.bottom_middle.grid_columnconfigure(3, weight=1)
+        self.bottom_middle.grid_columnconfigure(3, weight=0)
+        self.bottom_middle.grid_columnconfigure(4, weight=1)
         self.bottom_middle.grid_rowconfigure(0, weight=1)
         
         # Add delete button centered in the bottom section
@@ -294,6 +299,17 @@ class App(ctk.CTk):
             rotate_icon = None
             rotate_icon_mirrored = None
         
+        # Try to load refresh icon
+        try:
+            refresh_icon = ctk.CTkImage(
+                light_image=Image.open("resources/images/sinchronize-64.ico"),
+                dark_image=Image.open("resources/images/sinchronize-64.ico"),
+                size=(20, 20)
+            )
+        except Exception as e:
+            # Fallback to text if images can't be loaded
+            refresh_icon = None
+        
         # Store rotate icons for later use
         self.rotate_icon = rotate_icon
         self.rotate_icon_mirrored = rotate_icon_mirrored
@@ -320,6 +336,17 @@ class App(ctk.CTk):
             height=30
         )
         self.bottom_button2.grid(row=0, column=2, padx=5, sticky="")
+        
+        # Add refresh button
+        self.bottom_button3 = self.create_button(
+            self.bottom_middle,
+            text="🔄" if refresh_icon is None else "",
+            image=refresh_icon,
+            command=self.on_refresh_click,
+            width=80,
+            height=30
+        )
+        self.bottom_button3.grid(row=0, column=3, padx=5, sticky="")
         
         # Hide layer 2 initially
         self.layer2.grid_remove()
@@ -635,6 +662,9 @@ class App(ctk.CTk):
             self.current_image_index = 0
             self.current_image_path = images[0] if images else None
             
+            # Clear the image cache when loading a new directory
+            self.image_cache.clear()
+            
             # If all checks pass, switch to second layer
             self.show_layer2()
             
@@ -693,6 +723,10 @@ class App(ctk.CTk):
                 # Remove the image from the list
                 self.directory_images.remove(self.current_image_path)
                 
+                # Remove the deleted image from cache
+                if self.current_image_path in self.image_cache:
+                    del self.image_cache[self.current_image_path]
+                
                 # Check if there are any images left
                 if not self.directory_images:
                     # No images left, return to first layer
@@ -743,6 +777,10 @@ class App(ctk.CTk):
                 # Save the rotated image, overwriting the original
                 rotated_image.save(self.current_image_path)
                 
+                # Remove the old image from cache so it gets reloaded with the rotation
+                if self.current_image_path in self.image_cache:
+                    del self.image_cache[self.current_image_path]
+                
                 # Refresh the display to show the rotated image
                 self.display_file_info(self.current_image_path)
                 
@@ -775,6 +813,10 @@ class App(ctk.CTk):
                 # Save the rotated image, overwriting the original
                 rotated_image.save(self.current_image_path)
                 
+                # Remove the old image from cache so it gets reloaded with the rotation
+                if self.current_image_path in self.image_cache:
+                    del self.image_cache[self.current_image_path]
+                
                 # Refresh the display to show the rotated image
                 self.display_file_info(self.current_image_path)
                 
@@ -784,6 +826,57 @@ class App(ctk.CTk):
                 
         else:
             pass  # No images available for rotation
+    
+    def on_refresh_click(self):
+        """
+        Handle refresh button click - reconstruct the files list and reload the second layer
+        """
+        if hasattr(self, 'current_directory') and self.current_directory:
+            # Run pre-execution function if there's a current image
+            if hasattr(self, 'current_image_path') and self.current_image_path:
+                self.pre_button_execution(self.current_image_path)
+            
+            try:
+                # Clear the image cache when refreshing
+                self.image_cache.clear()
+                
+                # Check if recursive operation is enabled
+                is_recursive = self.recursive_checkbox.get()
+                
+                # Get updated files list using the dedicated function
+                images = self.list_images(self.current_directory, is_recursive)
+                
+                # Check if the files list is empty
+                if not images:
+                    # No images left, return to first layer
+                    self.input_box.delete(0, 'end')  # Clear input box
+                    self.display_error(self.error_label, "No images found after refresh")
+                    self.show_layer1()
+                    return
+                
+                # Remember current image path to preserve position if possible
+                current_image_path = getattr(self, 'current_image_path', None)
+                
+                # Update the image list
+                self.directory_images = images
+                
+                # Try to find the current image in the new list
+                new_index = 0
+                if current_image_path and current_image_path in images:
+                    new_index = images.index(current_image_path)
+                
+                # Update current index and image path
+                self.current_image_index = new_index
+                self.current_image_path = images[new_index]
+                
+                # Reload the current image
+                self.display_file_info(self.current_image_path)
+                
+            except Exception as e:
+                # Handle any errors during refresh
+                pass
+        else:
+            pass  # No directory available for refresh
     
     def on_closing(self):
         """
@@ -795,6 +888,33 @@ class App(ctk.CTk):
     
     def display_image_or_video(self, image_path):
         """Display an image in the green section, resized to fit."""
+        try:
+            # Check if image is already in cache
+            if image_path in self.image_cache:
+                photo = self.image_cache[image_path]
+                self.image_label.configure(image=photo, text="")
+                self.image_label.image = photo  # Keep a reference to prevent garbage collection
+                return
+            
+            # Load and process the image
+            photo = self.load_and_resize_image(image_path)
+            if photo:
+                # Update the label
+                self.image_label.configure(image=photo, text="")
+                self.image_label.image = photo  # Keep a reference to prevent garbage collection
+                
+                # Add to cache
+                self.image_cache[image_path] = photo
+            else:
+                self.image_label.configure(image=None, text="Error loading image")
+                self.image_label.image = None
+            
+        except Exception as e:
+            self.image_label.configure(image=None, text=f"Error loading image: {str(e)}")
+            self.image_label.image = None
+    
+    def load_and_resize_image(self, image_path):
+        """Load and resize an image to fit the green section."""
         try:
             # Open and resize the image to fit the green section
             image = Image.open(image_path)
@@ -822,13 +942,47 @@ class App(ctk.CTk):
             # Convert to PhotoImage
             photo = ImageTk.PhotoImage(image)
             
-            # Update the label
-            self.image_label.configure(image=photo, text="")
-            self.image_label.image = photo  # Keep a reference to prevent garbage collection
+            return photo
             
         except Exception as e:
-            self.image_label.configure(image=None, text=f"Error loading image: {str(e)}")
-            self.image_label.image = None
+            return None
+    
+    def preload_images(self, center_index):
+        """Preload images around the center index to cache."""
+        if not hasattr(self, 'directory_images') or not self.directory_images:
+            return
+        
+        # Calculate the range of images to preload (10 before and 10 after)
+        start_index = max(0, center_index - 10)
+        end_index = min(len(self.directory_images), center_index + 11)  # +11 to include 10 after
+        
+        # Clear cache of images outside the range
+        images_to_keep = set()
+        for i in range(start_index, end_index):
+            if i < len(self.directory_images):
+                images_to_keep.add(self.directory_images[i])
+        
+        # Remove images from cache that are outside the range
+        keys_to_remove = [key for key in self.image_cache.keys() if key not in images_to_keep]
+        for key in keys_to_remove:
+            del self.image_cache[key]
+        
+        # Preload images in the range that aren't already cached
+        def preload_worker():
+            for i in range(start_index, end_index):
+                if i < len(self.directory_images):
+                    image_path = self.directory_images[i]
+                    if image_path not in self.image_cache:
+                        try:
+                            photo = self.load_and_resize_image(image_path)
+                            if photo:
+                                self.image_cache[image_path] = photo
+                        except Exception as e:
+                            # Skip images that can't be loaded
+                            pass
+        
+        # Run preloading in a separate thread to avoid blocking the UI
+        threading.Thread(target=preload_worker, daemon=True).start()
     
     def clear_image(self):
         """Clear the image display."""
@@ -893,6 +1047,7 @@ class App(ctk.CTk):
             if hasattr(self, 'directory_images') and self.directory_images:
                 try:
                     current_index = self.directory_images.index(file_path)
+                    self.current_image_index = current_index
                     total_count = len(self.directory_images)
                     self.image_index_label.configure(text=f"{current_index + 1} of {total_count}")
                 except ValueError:
@@ -908,6 +1063,10 @@ class App(ctk.CTk):
             
             # Update navigation buttons based on current file
             self.update_navigation_buttons(file_path)
+            
+            # Preload surrounding images
+            if hasattr(self, 'directory_images') and self.directory_images:
+                self.preload_images(self.current_image_index)
         else:
             # Clear all labels and image if no file
             self.clear_image()
