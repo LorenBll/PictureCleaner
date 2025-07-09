@@ -99,6 +99,9 @@ class App(ctk.CTk):
         )
         self.input_box.grid(row=1, column=0, pady=(10, 10), sticky="")
         
+        # Bind Enter key to the input box to trigger submit
+        self.input_box.bind("<Return>", lambda event: self.handle_submit())
+        
         # Checkbox and label frame
         self.checkbox_frame = ctk.CTkFrame(self.layer1, fg_color="transparent")
         self.checkbox_frame.grid(row=2, column=0, pady=(10, 10), sticky="")
