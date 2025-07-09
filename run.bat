@@ -1,5 +1,5 @@
 @echo off
-echo Starting PVCleaner Application...
+echo Starting GalleryCleaner Application...
 echo.
 
 :: Check if virtual environment exists
@@ -27,7 +27,7 @@ if not exist "src\main.py" (
 )
 
 :: Run the application
-echo Running PVCleaner...
+echo Running GalleryCleaner...
 python src\main.py
 
 :: Check if the application ran successfully

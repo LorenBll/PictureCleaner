@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "Starting PVCleaner Application..."
+echo "Starting GalleryCleaner Application..."
 echo
 
 # Check if virtual environment exists
@@ -25,7 +25,7 @@ if [ ! -f "src/main.py" ]; then
 fi
 
 # Run the application
-echo "Running PVCleaner..."
+echo "Running GalleryCleaner..."
 python src/main.py
 
 # Check if the application ran successfully

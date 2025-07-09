@@ -1,5 +1,5 @@
 @echo off
-echo Setting up PVCleaner Application...
+echo Setting up GalleryCleaner Application...
 echo.
 
 :: Check if Python is installed

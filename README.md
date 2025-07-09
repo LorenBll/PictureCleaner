@@ -1,12 +1,12 @@
-# PVCleaner
+# GalleryCleaner
 
-**A streamlined media cleanup tool designed for efficiency and speed**
+**A streamlined image cleanup tool designed for efficiency and speed**
 
 ## Problem & Solution
 
-Managing large collections of photos and videos can be overwhelming. Traditional file management approaches force you to navigate through endless folders, right-click menus, and confirmation dialogs, making the cleanup process tedious and time-consuming.
+Managing large collections of photos can be overwhelming. Traditional file management approaches force you to navigate through endless folders, right-click menus, and confirmation dialogs, making the cleanup process tedious and time-consuming.
 
-**PVCleaner** solves this problem by providing a purpose-built interface optimized for rapid media review and deletion. With keyboard shortcuts, streamlined navigation, and an intuitive preview system, you can quickly skim through your media collection and remove unwanted files without the friction of traditional file managers.
+**GalleryCleaner** solves this problem by providing a purpose-built interface optimized for rapid image review and deletion. With keyboard shortcuts, streamlined navigation, and an intuitive preview system, you can quickly skim through your image collection and remove unwanted files without the friction of traditional file managers.
 
 ## Table of Contents
 
@@ -25,11 +25,11 @@ Managing large collections of photos and videos can be overwhelming. Traditional
 - **Minimal Cursor Movement**: All actions accessible via keyboard shortcuts
 - **No Confirmation Dialogs**: Streamlined workflow without interrupting pop-ups
 
-### **Smart Media Preview**
-- **Real-time Preview**: Instantly view images and videos as you navigate
+### **Smart Image Preview**
+- **Real-time Preview**: Instantly view images as you navigate
 - **Responsive Layout**: Automatically scales to fit your screen
-- **Multi-format Support**: Handles various image and video formats
-- **Thumbnail Generation**: Quick loading for large media files
+- **Multi-format Support**: Handles various image formats
+- **Quick Loading**: Optimized for large image collections
 
 ### **Safe & Reliable**
 - **Trash Integration**: Files moved to system trash (not permanently deleted)
@@ -45,9 +45,9 @@ Managing large collections of photos and videos can be overwhelming. Traditional
 
 ## Screenshots
 
-![PVCleaner Interface](docs/images/screenshot.png)
+![GalleryCleaner Interface](docs/images/screenshot.png)
 
-*PVCleaner's clean and intuitive interface showing the main preview area with navigation controls*
+*GalleryCleaner's clean and intuitive interface showing the main preview area with navigation controls*
 
 ## Technologies
 
@@ -55,7 +55,7 @@ Managing large collections of photos and videos can be overwhelming. Traditional
 - **Python 3.7+** - Primary programming language
 - **CustomTkinter** - Modern GUI framework with native look and feel
 
-**Media Processing:**
+**Image Processing:**
 - **Pillow (PIL)** - Advanced image processing and format support
 - **Send2Trash** - Safe file deletion with system trash integration
 
@@ -73,8 +73,8 @@ Managing large collections of photos and videos can be overwhelming. Traditional
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/yourusername/PVCleaner.git
-   cd PVCleaner
+   git clone https://github.com/yourusername/GalleryCleaner.git
+   cd GalleryCleaner
    ```
 
 2. **Run the setup script:**
@@ -144,23 +144,31 @@ python src/main.py
 
 ### Navigation Controls
 
-| Key | Action |
-|-----|--------|
+| Key Combination | Action |
+|-----------------|--------|
 | `A` or `←` | Previous file |
 | `D` or `→` | Next file |
 | `S` or `↓` | Delete current file |
-| `R` | Rotate current image 90° right |
-| `Shift` + `R` | Rotate current image 90° left |
-| `Shift` + Rotate Button | Rotate in opposite direction (visual feedback) |
+| `Ctrl+R` | Refresh directory |
+| `Ctrl+Q` | Rotate image left (90° counter-clockwise) |
+| `Ctrl+E` | Rotate image right (90° clockwise) |
+| `Esc` or `Ctrl+B` | Go back to directory selection (if not already there) |
+| `Enter` | Submit directory path (on input screen) |
 
+**Mouse Controls:**
+- Click arrow buttons to navigate between files
+- Click delete button (🗑️) to move file to trash
+- Click rotate buttons (↶/↷) to rotate images
+- Click refresh button (🔄) to refresh directory
+- Click back button to return to directory selection
 
 ### Workflow
 
-1. **Select Directory**: Choose the folder containing media files to review
+1. **Select Directory**: Choose the folder containing image files to review
 2. **Navigate**: Use `A`/`D` keys to move between files
-3. **Preview**: View images and videos in the main preview area
+3. **Preview**: View images in the main preview area
 4. **Delete**: Press `S` to move unwanted files to trash
-5. **Continue**: Repeat until your media collection is cleaned
+5. **Continue**: Repeat until your image collection is cleaned
 
 ### Tips for Maximum Efficiency
 
