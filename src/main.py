@@ -12,7 +12,7 @@ class App(ctk.CTk):
         super().__init__()
         
         # Configure window
-        self.title("PictureCleaner")
+        self.title("PVCleaner")
         self.geometry("920x595")
         
         # Set minimum window size to accommodate the 800x500 green section

@@ -1,4 +1,4 @@
-# PictureCleaner
+# PVCleaner
 
 **A streamlined media cleanup tool designed for efficiency and speed**
 
@@ -6,7 +6,7 @@
 
 Managing large collections of photos and videos can be overwhelming. Traditional file management approaches force you to navigate through endless folders, right-click menus, and confirmation dialogs, making the cleanup process tedious and time-consuming.
 
-**PictureCleaner** solves this problem by providing a purpose-built interface optimized for rapid media review and deletion. With keyboard shortcuts, streamlined navigation, and an intuitive preview system, you can quickly skim through your media collection and remove unwanted files without the friction of traditional file managers.
+**PVCleaner** solves this problem by providing a purpose-built interface optimized for rapid media review and deletion. With keyboard shortcuts, streamlined navigation, and an intuitive preview system, you can quickly skim through your media collection and remove unwanted files without the friction of traditional file managers.
 
 ## Table of Contents
 
@@ -45,9 +45,9 @@ Managing large collections of photos and videos can be overwhelming. Traditional
 
 ## Screenshots
 
-![PictureCleaner Interface](docs/images/screenshot.png)
+![PVCleaner Interface](docs/images/screenshot.png)
 
-*PictureCleaner's clean and intuitive interface showing the main preview area with navigation controls*
+*PVCleaner's clean and intuitive interface showing the main preview area with navigation controls*
 
 ## Technologies
 
@@ -73,8 +73,8 @@ Managing large collections of photos and videos can be overwhelming. Traditional
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/yourusername/PictureCleaner.git
-   cd PictureCleaner
+   git clone https://github.com/yourusername/PVCleaner.git
+   cd PVCleaner
    ```
 
 2. **Run the setup script:**
