@@ -6,6 +6,46 @@ import os
 from datetime import datetime
 from PIL import Image, ImageTk
 import send2trash
+import tkinter as tk
+
+
+class ToolTip:
+    """Custom tooltip class for customtkinter widgets"""
+    def __init__(self, widget, text='widget info'):
+        self.widget = widget
+        self.text = text
+        self.tipwindow = None
+        self.widget.bind('<Enter>', self.on_enter)
+        self.widget.bind('<Leave>', self.on_leave)
+        self.widget.bind('<ButtonPress>', self.on_leave)
+    
+    def on_enter(self, event=None):
+        self.show_tooltip()
+    
+    def on_leave(self, event=None):
+        self.hide_tooltip()
+    
+    def show_tooltip(self):
+        if self.tipwindow or not self.text:
+            return
+        x, y, _, _ = self.widget.bbox("insert") if hasattr(self.widget, 'bbox') else (0, 0, 0, 0)
+        x = x + self.widget.winfo_rootx() + 25
+        y = y + self.widget.winfo_rooty() + 25
+        
+        self.tipwindow = tw = tk.Toplevel(self.widget)
+        tw.wm_overrideredirect(True)
+        tw.wm_geometry(f"+{x}+{y}")
+        
+        label = tk.Label(tw, text=self.text, justify=tk.LEFT,
+                        background="#ffffe0", relief=tk.SOLID, borderwidth=1,
+                        font=("Arial", 10, "normal"))
+        label.pack(ipadx=1)
+    
+    def hide_tooltip(self):
+        tw = self.tipwindow
+        self.tipwindow = None
+        if tw:
+            tw.destroy()
 
 
 class App(ctk.CTk):
@@ -143,6 +183,7 @@ class App(ctk.CTk):
             self.layer1,
             text="Submit",
             command=self.handle_submit,
+            tooltip="Validate directory and start browsing images (Enter)",
             width=300,
             height=40
         )
@@ -184,6 +225,7 @@ class App(ctk.CTk):
             text="◀" if left_arrow_icon is None else "",
             image=left_arrow_icon,
             command=self.on_left_arrow_click,
+            tooltip="Previous image (A or Left Arrow)",
             width=40,
             height=40
         )
@@ -214,6 +256,7 @@ class App(ctk.CTk):
             text="▶" if right_arrow_icon is None else "",
             image=right_arrow_icon,
             command=self.on_right_arrow_click,
+            tooltip="Next image (D or Right Arrow)",
             width=40,
             height=40
         )
@@ -322,6 +365,7 @@ class App(ctk.CTk):
             text="BACK" if back_icon is None else "",
             image=back_icon,
             command=self.on_back_click,
+            tooltip="Return to directory selection (Escape or Ctrl+B)",
             width=80,
             height=30
         )
@@ -372,6 +416,7 @@ class App(ctk.CTk):
             text="🗑️" if trash_icon is None else "",
             image=trash_icon,
             command=self.on_delete_click,
+            tooltip="Move current image to trash (S or Down Arrow)",
             fg_color="red",
             hover_color="darkred",
             width=80,
@@ -385,6 +430,7 @@ class App(ctk.CTk):
             text="↶" if rotate_left_icon is None else "",
             image=rotate_left_icon,
             command=self.on_rotate_left_click,
+            tooltip="Rotate image 90° counter-clockwise (Ctrl+Q)",
             width=80,
             height=30
         )
@@ -396,6 +442,7 @@ class App(ctk.CTk):
             text="↷" if rotate_right_icon is None else "",
             image=rotate_right_icon,
             command=self.on_rotate_right_click,
+            tooltip="Rotate image 90° clockwise (Ctrl+E)",
             width=80,
             height=30
         )
@@ -407,6 +454,7 @@ class App(ctk.CTk):
             text="🔄" if refresh_icon is None else "",
             image=refresh_icon,
             command=self.on_refresh_click,
+            tooltip="Refresh directory and rescan for images (Ctrl+R)",
             width=80,
             height=30
         )
@@ -415,9 +463,12 @@ class App(ctk.CTk):
         # Hide layer 2 initially
         self.layer2.grid_remove()
     
-    def create_button(self, parent, text, command=None, **kwargs):
+    def create_button(self, parent, text, command=None, tooltip=None, **kwargs):
         """Method for creating buttons with consistent styling"""
-        return ctk.CTkButton(parent, text=text, command=command, **kwargs)
+        button = ctk.CTkButton(parent, text=text, command=command, **kwargs)
+        if tooltip:
+            ToolTip(button, tooltip)
+        return button
     
     def show_layer1(self):
         """Show layer 1 and hide layer 2"""
