@@ -110,8 +110,7 @@ class App(ctk.CTk):
         # Recursive checkbox
         self.recursive_checkbox = ctk.CTkCheckBox(
             self.checkbox_frame,
-            text="  Operate Recursively",
-            width=200,
+            text="Operate Recursively  ",
             height=20,
             text_color=("gray10", "gray90"),
             checkbox_width=18,
