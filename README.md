@@ -40,6 +40,7 @@ Managing large collections of photos can be overwhelming. Traditional file manag
 ### **Modern Interface**
 - **Clean Design**: Distraction-free environment focused on content
 - **System Theme Support**: Adapts to your OS appearance preferences
+- **Customizable Appearance**: Personalize colors, icons, and fonts through configuration
 - **Responsive Layout**: Works on various screen sizes and resolutions
 - **Professional Icons**: Intuitive visual indicators for all actions
 
@@ -176,6 +177,45 @@ python src/main.py
 - **Work in focused sessions** - clean one directory at a time
 - **Preview quickly** - trust your first impression for faster decisions
 - **Regular cleanup** - prevent accumulation of unwanted files
+
+### Appearance Customization
+
+GalleryCleaner supports full appearance customization through the `gui/appearance.json` configuration file. You can personalize:
+
+**Colors:**
+- Window and card background colors
+- Button colors (default, hover, disabled states)
+- Delete button colors for safety distinction
+- Text colors and input field styling
+- Progress bar and selection colors
+
+**Icons:**
+- Navigation arrows (left/right)
+- Action buttons (delete, rotate, refresh, back)
+- Custom icon paths for complete visual control
+
+**Typography:**
+- Font family selection
+- Font size adjustment
+
+**Example customization:**
+```json
+{
+    "appearance": {
+        "colors": {
+            "window_background_color": "#2d3748",
+            "default_button_color": "#4299e1",
+            "delete_button_color": "#f56565",
+            "default_text_color": "#e2e8f0"
+        },
+        "icons": {
+            "trash_icon_path": "custom/icons/delete.ico"
+        }
+    }
+}
+```
+
+Changes take effect immediately when you restart the application. If any configuration is missing or invalid, the application automatically falls back to sensible defaults or detects your OS theme preferences.
 
 ## Developer
 

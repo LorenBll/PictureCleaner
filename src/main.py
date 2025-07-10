@@ -3,6 +3,9 @@ import sys
 import threading
 import time
 import os
+import json
+import gc
+import platform
 from datetime import datetime
 from PIL import Image, ImageTk
 import send2trash
@@ -52,9 +55,19 @@ class App(ctk.CTk):
     def __init__(self):
         super().__init__()
         
+        # Load appearance configuration first
+        self.load_appearance_config()
+        
         # Configure window
         self.title("GalleryCleaner")
         self.geometry("920x595")
+        
+        # Apply theme configuration
+        self.apply_theme_config()
+        
+        # Set window background color
+        window_bg = self.get_color("window_background_color")
+        self.configure(fg_color=window_bg)
         
         # Set minimum window size to accommodate the 800x500 green section
         # 800 (green) + 50 (left sidebar) + 50 (right sidebar) + 20 (padding) = 920px width
@@ -63,10 +76,6 @@ class App(ctk.CTk):
         
         # Set maximum window width to 1200 pixels
         self.maxsize(1200, 10000)  # 10000 for height allows unlimited vertical expansion
-        
-        # Set theme and color
-        ctk.set_appearance_mode("system")  # Default system theme
-        ctk.set_default_color_theme("blue")  # Blue color theme
         
         # Configure window close behavior
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
@@ -124,11 +133,148 @@ class App(ctk.CTk):
         # Show the initial layer
         self.show_layer1()
 
+    def load_appearance_config(self):
+        """Load appearance configuration from gui/appearance.json"""
+        self.appearance_config = {
+            "icons": {
+                "left_arrow_icon_path": "resources/images/left_arrow.ico",
+                "right_arrow_icon_path": "resources/images/right_arrow.ico",
+                "back_icon_path": "resources/images/stop.ico",
+                "trash_icon_path": "resources/images/trash.ico",
+                "rotate_left_icon_path": "resources/images/rotate.ico",
+                "refresh_icon_path": "resources/images/refresh.ico"
+            },
+            "colors": {
+                "window_background_color": "#f0f0f0",
+                "card_background_color": "#ffffff",
+                "default_button_color": "#007bff",
+                "default_button_hover_color": "#0056b3",
+                "default_disabled_button_color": "#6c757d",
+                "delete_button_color": "#dc3545",
+                "delete_button_hover_color": "#c82333",
+                "default_text_color": "#333333",
+                "default_text_font": "Arial",
+                "default_text_size": 12
+            }
+        }
+        
+        try:
+            config_path = os.path.join("gui", "appearance.json")
+            if os.path.exists(config_path):
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    loaded_config = json.load(f)
+                    
+                # Merge loaded config with defaults
+                if "appearance" in loaded_config:
+                    appearance = loaded_config["appearance"]
+                    if "icons" in appearance:
+                        self.appearance_config["icons"].update(appearance["icons"])
+                    if "colors" in appearance:
+                        self.appearance_config["colors"].update(appearance["colors"])
+                        
+        except (json.JSONDecodeError, FileNotFoundError, KeyError) as e:
+            print(f"Warning: Could not load appearance config: {e}")
+            print("Using default configuration.")
+    
+    def apply_theme_config(self):
+        """Apply theme configuration to the application"""
+        colors = self.appearance_config["colors"]
+        
+        # Set CustomTkinter appearance mode based on window background or OS theme
+        bg_color = colors.get("window_background_color")
+        
+        if bg_color:
+            # Always use the color from the configuration
+            if self._is_dark_color(bg_color):
+                ctk.set_appearance_mode("dark")
+            else:
+                ctk.set_appearance_mode("light")
+        else:
+            # Use OS theme detection when no background color is specified
+            os_theme = self._detect_os_theme()
+            ctk.set_appearance_mode(os_theme)
+            
+            # Set default colors based on detected theme
+            if os_theme == "dark":
+                self.appearance_config["colors"]["window_background_color"] = "#212121"
+                self.appearance_config["colors"]["card_background_color"] = "#2b2b2b"
+            else:
+                self.appearance_config["colors"]["window_background_color"] = "#f0f0f0"
+                self.appearance_config["colors"]["card_background_color"] = "#ffffff"
+            
+        # Set color theme - use blue as default
+        ctk.set_default_color_theme("blue")
+    
+    def _is_dark_color(self, hex_color):
+        """Determine if a hex color is dark or light"""
+        try:
+            # Remove # if present
+            hex_color = hex_color.lstrip('#')
+            # Convert to RGB
+            r, g, b = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+            # Calculate luminance
+            luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+            return luminance < 0.5
+        except:
+            return False
+    
+    def get_icon_path(self, icon_key):
+        """Get the path for a specific icon"""
+        return self.appearance_config["icons"].get(icon_key, "")
+    
+    def get_color(self, color_key):
+        """Get a specific color from the configuration"""
+        return self.appearance_config["colors"].get(color_key, "#007bff")
+    
+    def get_font_config(self):
+        """Get font configuration"""
+        colors = self.appearance_config["colors"]
+        return (
+            colors.get("default_text_font", "Arial"),
+            colors.get("default_text_size", 12)
+        )
+    
+    def load_icon(self, icon_key, size=(20, 20), fallback_paths=None):
+        """Load an icon from configuration with fallback options"""
+        try:
+            # Try to get path from configuration
+            icon_path = self.get_icon_path(icon_key)
+            if icon_path and os.path.exists(icon_path):
+                return ctk.CTkImage(
+                    light_image=Image.open(icon_path),
+                    dark_image=Image.open(icon_path),
+                    size=size
+                )
+        except Exception:
+            pass
+        
+        # Try fallback paths if provided
+        if fallback_paths:
+            for fallback_path in fallback_paths:
+                try:
+                    if os.path.exists(fallback_path):
+                        return ctk.CTkImage(
+                            light_image=Image.open(fallback_path),
+                            dark_image=Image.open(fallback_path),
+                            size=size
+                        )
+                except Exception:
+                    continue
+        
+        # Return None if no icon could be loaded
+        return None
+
     # UI Setup Methods
     def create_layers(self):
         """Create the two display layers as frames."""
+        # Get theme colors
+        frame_colors = self.get_frame_colors()
+        text_color = self.get_color("default_text_color")
+        font_family, font_size = self.get_font_config()
+        card_bg = frame_colors["card_bg"]
+        
         # Layer 1: Initial layer with input box and button
-        self.layer1 = ctk.CTkFrame(self)
+        self.layer1 = ctk.CTkFrame(self, fg_color=card_bg)
         self.layer1.grid(row=0, column=0, sticky="nsew")
         self.layer1.grid_columnconfigure(0, weight=1)
         self.layer1.grid_rowconfigure(0, weight=1)
@@ -138,12 +284,24 @@ class App(ctk.CTk):
         self.layer1.grid_rowconfigure(4, weight=0)
         self.layer1.grid_rowconfigure(5, weight=1)
         
-        # Input box in the middle
+        # Input box in the middle with theme colors
+        entry_bg_color = self.get_color("input_background_color") or frame_colors["card_bg"]
+        entry_border_color = self.get_color("input_border_color") or self.get_color("default_button_color")
+        entry_text_color = text_color
+        
+        # Create a dimmed placeholder color by using a muted version of text color
+        placeholder_color = self.get_color("default_disabled_button_color")
+        
         self.input_box = ctk.CTkEntry(
             self.layer1,
             placeholder_text="Enter directory path...",
             width=300,
-            height=40
+            height=40,
+            font=(font_family, font_size),
+            fg_color=entry_bg_color,
+            border_color=entry_border_color,
+            text_color=entry_text_color,
+            placeholder_text_color=placeholder_color
         )
         self.input_box.grid(row=1, column=0, pady=(10, 10), sticky="")
         
@@ -155,16 +313,23 @@ class App(ctk.CTk):
         self.checkbox_frame.grid(row=2, column=0, pady=(10, 10), sticky="")
         self.checkbox_frame.configure(width=300)
         
-        # Recursive checkbox
+        # Recursive checkbox with theme colors
+        checkbox_color = self.get_color("default_button_color")
+        checkbox_hover_color = self.get_color("default_button_hover_color")
+        
         self.recursive_checkbox = ctk.CTkCheckBox(
             self.checkbox_frame,
             text="Operate Recursively  ",
             height=20,
-            text_color=("gray10", "gray90"),
+            text_color=(text_color, text_color),
             checkbox_width=18,
             checkbox_height=18,
             border_width=2,
-            text_color_disabled=("gray40", "gray60")
+            text_color_disabled=("gray40", "gray60"),
+            font=(font_family, font_size),
+            fg_color=checkbox_color,
+            hover_color=checkbox_hover_color,
+            checkmark_color="white"
         )
         self.recursive_checkbox.pack(anchor="center")
         
@@ -174,7 +339,8 @@ class App(ctk.CTk):
             text="",
             text_color="red",
             width=300,
-            height=20
+            height=20,
+            font=(font_family, font_size)
         )
         self.error_label.grid(row=3, column=0, pady=(10, 10), sticky="")
         
@@ -190,7 +356,7 @@ class App(ctk.CTk):
         self.main_button.grid(row=4, column=0, pady=(10, 10), sticky="")
         
         # Layer 2: Second layer with 4 sections
-        self.layer2 = ctk.CTkFrame(self)
+        self.layer2 = ctk.CTkFrame(self, fg_color=card_bg)
         self.layer2.grid(row=0, column=0, sticky="nsew")
         
         # Configure grid layout for 3 columns and 2 rows
@@ -201,7 +367,7 @@ class App(ctk.CTk):
         self.layer2.grid_rowconfigure(1, weight=0, minsize=75)  # Bottom row - fixed 75px
         
         # Left sidebar (spans both rows) - fixed 50px width
-        self.left_sidebar = ctk.CTkFrame(self.layer2, width=50)
+        self.left_sidebar = ctk.CTkFrame(self.layer2, width=50, fg_color=card_bg)
         self.left_sidebar.grid(row=0, column=0, rowspan=2, sticky="ns", padx=5, pady=5)
         self.left_sidebar.grid_propagate(False)  # Prevent resizing
         
@@ -210,14 +376,11 @@ class App(ctk.CTk):
         self.left_sidebar.grid_rowconfigure(0, weight=1)
         
         # Load left arrow icon
-        try:
-            left_arrow_icon = ctk.CTkImage(
-                light_image=Image.open("resources/images/arrow-92-64.ico"),
-                dark_image=Image.open("resources/images/arrow-92-64.ico"),
-                size=(24, 24)
-            )
-        except Exception:
-            left_arrow_icon = None
+        left_arrow_icon = self.load_icon(
+            "left_arrow_icon_path", 
+            size=(24, 24),
+            fallback_paths=["resources/images/arrow-92-64.ico", "resources/images/left_arrow.ico"]
+        )
         
         # Left sidebar button (centered)
         self.left_button = self.create_button(
@@ -232,7 +395,7 @@ class App(ctk.CTk):
         self.left_button.grid(row=0, column=0, sticky="")
         
         # Right sidebar (spans both rows) - fixed 50px width
-        self.right_sidebar = ctk.CTkFrame(self.layer2, width=50)
+        self.right_sidebar = ctk.CTkFrame(self.layer2, width=50, fg_color=card_bg)
         self.right_sidebar.grid(row=0, column=2, rowspan=2, sticky="ns", padx=5, pady=5)
         self.right_sidebar.grid_propagate(False)  # Prevent resizing
         
@@ -241,14 +404,11 @@ class App(ctk.CTk):
         self.right_sidebar.grid_rowconfigure(0, weight=1)
         
         # Load right arrow icon
-        try:
-            right_arrow_icon = ctk.CTkImage(
-                light_image=Image.open("resources/images/arrow-28-64.ico"),
-                dark_image=Image.open("resources/images/arrow-28-64.ico"),
-                size=(24, 24)
-            )
-        except Exception:
-            right_arrow_icon = None
+        right_arrow_icon = self.load_icon(
+            "right_arrow_icon_path", 
+            size=(24, 24),
+            fallback_paths=["resources/images/arrow-28-64.ico", "resources/images/right_arrow.ico"]
+        )
         
         # Right sidebar button (centered)
         self.right_button = self.create_button(
@@ -263,7 +423,7 @@ class App(ctk.CTk):
         self.right_button.grid(row=0, column=0, sticky="")
         
         # Top middle section - green display area with minimum size
-        self.green_section = ctk.CTkFrame(self.layer2, width=800, height=500)
+        self.green_section = ctk.CTkFrame(self.layer2, width=800, height=500, fg_color=card_bg)
         self.green_section.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
         self.green_section.grid_propagate(False)  # Prevent resizing
         
@@ -277,8 +437,8 @@ class App(ctk.CTk):
         self.image_label = ctk.CTkLabel(
             self.green_section,
             text="No image selected",
-            font=("Arial", 16),
-            text_color="white"
+            font=(font_family, font_size + 4),
+            text_color=text_color
         )
         self.image_label.grid(row=0, column=0, sticky="nsew", padx=10, pady=(10, 5))
         
@@ -294,18 +454,19 @@ class App(ctk.CTk):
         self.image_index_label = ctk.CTkLabel(
             self.index_progress_frame,
             text="",
-            font=("Arial", 12, "bold"),
-            text_color="lightgray",
+            font=(font_family, font_size, "bold"),
+            text_color=text_color,
             anchor="center"
         )
         self.image_index_label.grid(row=0, column=0, sticky="", padx=(0, 15))
         
-        # Add progress bar
+        # Add progress bar with theme colors
+        progress_color = self.get_color("default_button_color")
         self.progress_bar = ctk.CTkProgressBar(
             self.index_progress_frame,
             width=200,
             height=10,
-            progress_color=("#3B8ED0", "#1F6AA5")
+            progress_color=progress_color
         )
         self.progress_bar.grid(row=0, column=2, sticky="ew", padx=(0, 8))
         self.progress_bar.set(0)  # Initial value
@@ -314,8 +475,8 @@ class App(ctk.CTk):
         self.progress_label = ctk.CTkLabel(
             self.index_progress_frame,
             text="0%",
-            font=("Arial", 10, "bold"),
-            text_color="lightgray",
+            font=(font_family, font_size - 2, "bold"),
+            text_color=text_color,
             width=35
         )
         self.progress_label.grid(row=0, column=3, sticky="e")
@@ -329,14 +490,14 @@ class App(ctk.CTk):
         self.image_details_label = ctk.CTkLabel(
             self.info_frame,
             text="",
-            font=("Arial", 11),
-            text_color="lightgray",
+            font=(font_family, font_size - 1),
+            text_color=text_color,
             anchor="center"
         )
         self.image_details_label.grid(row=0, column=0, sticky="ew")
         
         # Bottom middle section - fixed 75px height
-        self.bottom_middle = ctk.CTkFrame(self.layer2, height=75)
+        self.bottom_middle = ctk.CTkFrame(self.layer2, height=75, fg_color=card_bg)
         self.bottom_middle.grid(row=1, column=1, sticky="ew", padx=5, pady=5)
         self.bottom_middle.grid_propagate(False)  # Prevent resizing
         
@@ -351,14 +512,10 @@ class App(ctk.CTk):
         self.bottom_middle.grid_rowconfigure(0, weight=1)
         
         # Add back button
-        try:
-            back_icon = ctk.CTkImage(
-                light_image=Image.open("resources/images/stop-64.ico"),
-                dark_image=Image.open("resources/images/stop-64.ico"),
-                size=(20, 20)
-            )
-        except Exception:
-            back_icon = None
+        back_icon = self.load_icon(
+            "back_icon_path", 
+            fallback_paths=["resources/images/stop-64.ico", "resources/images/stop.ico"]
+        )
         
         self.back_button = self.create_button(
             self.bottom_middle,
@@ -373,43 +530,46 @@ class App(ctk.CTk):
 
         # Add delete button centered in the bottom section
         # Load icon images
-        try:
-            trash_icon = ctk.CTkImage(
-                light_image=Image.open("resources/images/trash-10-64.ico"),
-                dark_image=Image.open("resources/images/trash-10-64.ico"),
-                size=(20, 20)
-            )
-        except Exception:
-            trash_icon = None
+        trash_icon = self.load_icon(
+            "trash_icon_path",
+            fallback_paths=["resources/images/trash-10-64.ico", "resources/images/trash.ico"]
+        )
         
-        try:
-            rotate_left_icon = ctk.CTkImage(
-                light_image=Image.open("resources/images/rotate-64.ico"),
-                dark_image=Image.open("resources/images/rotate-64.ico"),
-                size=(20, 20)
-            )
-        except Exception:
-            rotate_left_icon = None
+        rotate_left_icon = self.load_icon(
+            "rotate_left_icon_path",
+            fallback_paths=["resources/images/rotate-64.ico", "resources/images/rotate.ico"]
+        )
         
+        # Load rotate right icon (mirrored version of rotate left)
+        rotate_right_icon = None
         try:
-            # Mirror the rotate icon for right rotation
-            rotate_icon_image = Image.open("resources/images/rotate-64.ico")
-            rotate_right_icon = ctk.CTkImage(
-                light_image=rotate_icon_image.transpose(Image.Transpose.FLIP_LEFT_RIGHT),
-                dark_image=rotate_icon_image.transpose(Image.Transpose.FLIP_LEFT_RIGHT),
-                size=(20, 20)
-            )
+            # Try to get path from configuration first
+            rotate_path = self.get_icon_path("rotate_left_icon_path")
+            fallback_paths = ["resources/images/rotate-64.ico", "resources/images/rotate.ico"]
+            
+            icon_path = None
+            if rotate_path and os.path.exists(rotate_path):
+                icon_path = rotate_path
+            else:
+                for fallback in fallback_paths:
+                    if os.path.exists(fallback):
+                        icon_path = fallback
+                        break
+            
+            if icon_path:
+                rotate_icon_image = Image.open(icon_path)
+                rotate_right_icon = ctk.CTkImage(
+                    light_image=rotate_icon_image.transpose(Image.Transpose.FLIP_LEFT_RIGHT),
+                    dark_image=rotate_icon_image.transpose(Image.Transpose.FLIP_LEFT_RIGHT),
+                    size=(20, 20)
+                )
         except Exception:
             rotate_right_icon = None
         
-        try:
-            refresh_icon = ctk.CTkImage(
-                light_image=Image.open("resources/images/sinchronize-64.ico"),
-                dark_image=Image.open("resources/images/sinchronize-64.ico"),
-                size=(20, 20)
-            )
-        except Exception:
-            refresh_icon = None
+        refresh_icon = self.load_icon(
+            "refresh_icon_path",
+            fallback_paths=["resources/images/sinchronize-64.ico", "resources/images/refresh.ico"]
+        )
         
         self.bottom_button1 = self.create_button(
             self.bottom_middle,
@@ -417,8 +577,7 @@ class App(ctk.CTk):
             image=trash_icon,
             command=self.on_delete_click,
             tooltip="Move current image to trash (S or Down Arrow)",
-            fg_color="red",
-            hover_color="darkred",
+            button_type="delete",
             width=80,
             height=30
         )
@@ -463,9 +622,34 @@ class App(ctk.CTk):
         # Hide layer 2 initially
         self.layer2.grid_remove()
     
-    def create_button(self, parent, text, command=None, tooltip=None, **kwargs):
+    def create_button(self, parent, text, command=None, tooltip=None, button_type="default", **kwargs):
         """Method for creating buttons with consistent styling"""
-        button = ctk.CTkButton(parent, text=text, command=command, **kwargs)
+        # Get colors from configuration
+        colors = self.appearance_config["colors"]
+        font_family, font_size = self.get_font_config()
+        
+        # Set default styling based on button type
+        if button_type == "delete":
+            fg_color = colors.get("delete_button_color", "#dc3545")
+            hover_color = colors.get("delete_button_hover_color", "#c82333")
+            # Use white text for delete buttons for better contrast
+            text_color = "#ffffff"
+        else:
+            fg_color = colors.get("default_button_color", "#007bff")
+            hover_color = colors.get("default_button_hover_color", "#0056b3")
+            # Use white text for default buttons for better contrast
+            text_color = "#ffffff"
+        
+        # Create button with appearance configuration
+        button_kwargs = {
+            "fg_color": fg_color,
+            "hover_color": hover_color,
+            "text_color": text_color,
+            "font": (font_family, font_size),
+            **kwargs
+        }
+        
+        button = ctk.CTkButton(parent, text=text, command=command, **button_kwargs)
         if tooltip:
             ToolTip(button, tooltip)
         return button
@@ -808,19 +992,29 @@ class App(ctk.CTk):
         self.current_image_path = None
         self.current_rotation = 0
         
+        # Get disabled color from configuration
+        colors = self.appearance_config["colors"]
+        disabled_color = colors.get("default_disabled_button_color", "#6c757d")
+        
         if hasattr(self, 'left_button') and hasattr(self, 'right_button'):
-            self.left_button.configure(fg_color="gray", hover_color="gray")
-            self.right_button.configure(fg_color="gray", hover_color="gray")
+            self.left_button.configure(fg_color=disabled_color, hover_color=disabled_color)
+            self.right_button.configure(fg_color=disabled_color, hover_color=disabled_color)
         
         if hasattr(self, 'rotate_left_button') and hasattr(self, 'rotate_right_button'):
-            self.rotate_left_button.configure(fg_color="gray", hover_color="gray")
-            self.rotate_right_button.configure(fg_color="gray", hover_color="gray")
+            self.rotate_left_button.configure(fg_color=disabled_color, hover_color=disabled_color)
+            self.rotate_right_button.configure(fg_color=disabled_color, hover_color=disabled_color)
 
     def update_navigation_buttons(self, current_item_path):
         """Update the state of navigation buttons based on current item position"""
+        # Get colors from configuration
+        colors = self.appearance_config["colors"]
+        disabled_color = colors.get("default_disabled_button_color", "#6c757d")
+        active_color = colors.get("default_button_color", "#007bff")
+        active_hover_color = colors.get("default_button_hover_color", "#0056b3")
+        
         if not hasattr(self, 'directory_images') or not self.directory_images:
-            self.left_button.configure(fg_color="gray", hover_color="gray")
-            self.right_button.configure(fg_color="gray", hover_color="gray")
+            self.left_button.configure(fg_color=disabled_color, hover_color=disabled_color)
+            self.right_button.configure(fg_color=disabled_color, hover_color=disabled_color)
             return
         
         try:
@@ -828,23 +1022,23 @@ class App(ctk.CTk):
             self.current_image_index = current_index
             
             if current_index <= 0:
-                self.left_button.configure(fg_color="gray", hover_color="gray")
+                self.left_button.configure(fg_color=disabled_color, hover_color=disabled_color)
             else:
                 self.left_button.configure(
-                    fg_color=("#3B8ED0", "#1F6AA5"),
-                    hover_color=("#36719F", "#144870")
+                    fg_color=active_color,
+                    hover_color=active_hover_color
                 )
             
             if current_index >= len(self.directory_images) - 1:
-                self.right_button.configure(fg_color="gray", hover_color="gray")
+                self.right_button.configure(fg_color=disabled_color, hover_color=disabled_color)
             else:
                 self.right_button.configure(
-                    fg_color=("#3B8ED0", "#1F6AA5"),
-                    hover_color=("#36719F", "#144870")
+                    fg_color=active_color,
+                    hover_color=active_hover_color
                 )
         except ValueError:
-            self.left_button.configure(fg_color="gray", hover_color="gray")
-            self.right_button.configure(fg_color="gray", hover_color="gray")
+            self.left_button.configure(fg_color=disabled_color, hover_color=disabled_color)
+            self.right_button.configure(fg_color=disabled_color, hover_color=disabled_color)
 
     def display_error(self, label, message, duration=3):
         """Display an error message in the specified label for a given duration.
@@ -1041,7 +1235,76 @@ class App(ctk.CTk):
         image_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp', '.svg', '.ico', '.tga', '.psd'}
         _, ext = os.path.splitext(file_path.lower())
         return ext in image_extensions
+    
+    def _detect_os_theme(self):
+        """Detect OS theme preference"""
+        try:
+            # Windows
+            if platform.system() == "Windows":
+                import winreg
+                try:
+                    registry = winreg.ConnectRegistry(None, winreg.HKEY_CURRENT_USER)
+                    key = winreg.OpenKey(registry, r"SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize")
+                    value, _ = winreg.QueryValueEx(key, "AppsUseLightTheme")
+                    winreg.CloseKey(key)
+                    return "light" if value else "dark"
+                except (FileNotFoundError, OSError):
+                    pass
+            
+            # macOS
+            elif platform.system() == "Darwin":
+                import subprocess
+                try:
+                    result = subprocess.run(
+                        ["defaults", "read", "-g", "AppleInterfaceStyle"],
+                        capture_output=True, text=True, timeout=5
+                    )
+                    return "dark" if "Dark" in result.stdout else "light"
+                except (subprocess.TimeoutExpired, subprocess.CalledProcessError, FileNotFoundError):
+                    pass
+            
+            # Linux (try GNOME/KDE detection)
+            elif platform.system() == "Linux":
+                import subprocess
+                try:
+                    # Try GNOME
+                    result = subprocess.run(
+                        ["gsettings", "get", "org.gnome.desktop.interface", "gtk-theme"],
+                        capture_output=True, text=True, timeout=5
+                    )
+                    if "dark" in result.stdout.lower():
+                        return "dark"
+                except (subprocess.TimeoutExpired, subprocess.CalledProcessError, FileNotFoundError):
+                    try:
+                        # Try KDE
+                        result = subprocess.run(
+                            ["kreadconfig5", "--group", "Colors", "--key", "ColorScheme"],
+                            capture_output=True, text=True, timeout=5
+                        )
+                        if "dark" in result.stdout.lower():
+                            return "dark"
+                    except (subprocess.TimeoutExpired, subprocess.CalledProcessError, FileNotFoundError):
+                        pass
+        
+        except Exception:
+            pass
+        
+        # Default to light theme if detection fails
+        return "light"
 
+    def get_frame_colors(self):
+        """Get frame colors for the current theme"""
+        colors = self.appearance_config["colors"]
+        
+        # Get window and card background colors
+        window_bg = colors.get("window_background_color", "#f0f0f0")
+        card_bg = colors.get("card_background_color", "#ffffff")
+        
+        # Return appropriate colors for frames
+        return {
+            "window_bg": window_bg,
+            "card_bg": card_bg
+        }
 
 def main():
     app = App()

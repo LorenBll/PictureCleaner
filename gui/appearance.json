@@ -1,0 +1,27 @@
+{
+    "appearance": {
+        "icons": {
+            "left_arrow_icon_path": "resources/images/left_arrow.ico",
+            "right_arrow_icon_path": "resources/images/right_arrow.ico",
+            "back_icon_path": "resources/images/stop.ico",
+            "trash_icon_path": "resources/images/trash.ico",
+            "rotate_left_icon_path": "resources/images/rotate.ico",
+            "refresh_icon_path": "resources/images/refresh.ico"
+        },
+        "colors": {
+            "window_background_color": "#f0f0f0",
+            "card_background_color": "#ffffff",
+            "default_button_color": "#007bff",
+            "default_button_hover_color": "#0056b3",
+            "default_disabled_button_color": "#6c757d",
+            "delete_button_color": "#dc3545",
+            "delete_button_hover_color": "#c82333",
+            "default_text_color": "#333333",
+            "input_background_color": "#ffffff",
+            "input_border_color": "#007bff",
+            "input_selection_color": "#007bff",
+            "default_text_font": "Arial",
+            "default_text_size": 12
+        }
+    }
+}
